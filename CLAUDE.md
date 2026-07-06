@@ -59,21 +59,43 @@ TIKTOK_CLIENT_SECRET=...
 
 ## Key Decisions
 - **DeepSeek over Claude/GPT:** $0.27/1M tokens makes MVP affordable for solo dev
-- **MySQL over Supabase:** User preference, Prisma 7 as ORM
+- **SQLite over MySQL for MVP:** Zero config, auto-created, swap to MySQL/PlanetScale later
 - **X + TikTok over LinkedIn:** Better fit for Build-in-Public + indie hacker audience
 - **Stripe over LemonSqueezy:** More control, lower fees, full subscription management
 - **Web app over mobile:** Faster to ship, easier to iterate, mobile app later if needed
 
 ## MVP Status
-- [x] Landing page + onboarding flow
-- [x] Dashboard with mock data
-- [x] Leads, Content, Analytics, Settings, Billing pages
-- [x] DeepSeek integration (persona engine)
-- [x] X API client (post, fetch timeline, mentions)
-- [x] TikTok API client (OAuth, video upload, comments)
-- [x] Stripe checkout + webhook
-- [x] Prisma schema (MySQL)
-- [ ] Real OAuth flow (X + TikTok)
-- [ ] Remove mock data, wire up Prisma queries
-- [ ] Payment testing with Stripe test mode
-- [ ] Deploy to Vercel
+
+### Done
+- [x] Landing + onboarding (paste posts → DeepSeek analyzes style → shows persona profile)
+- [x] Dashboard (KPI cards + leads + content queue from SQLite)
+- [x] Leads page (AI-scored, filterable, mark read/contacted)
+- [x] Content page (generate via DeepSeek, approve/reject, real persistence)
+- [x] Analytics (static, needs real platform data)
+- [x] Settings (connect/disconnect platforms, manual token input, persona config)
+- [x] Billing (static pricing, Stripe checkout code ready)
+- [x] DeepSeek V3 integration (persona engine, content gen, local fallback)
+- [x] X API v2 client (postTweet, fetchTimeline, getUser)
+- [x] TikTok API v2 client (OAuth, video upload, publish)
+- [x] X OAuth 2.0 PKCE flow (complete, needs X App credentials)
+- [x] Stripe Checkout + Webhook handler
+- [x] SQLite persistence (6 tables, typed helpers)
+- [x] All pages share Sidebar+Header via (app) route group
+- [x] Content approve → auto-publish to connected platforms (code ready)
+
+### TODO — Blockers
+- [ ] **Create X Developer App** — developer.x.com, needs X account verification (phone)
+- [ ] **Deploy to Vercel** — needs Vercel account + GitHub connection
+- [ ] **Configure X_CLIENT_ID / SECRET** — after X App created
+
+### TODO — Next
+- [ ] TikTok OAuth (needs TikTok App approval)
+- [ ] Real X posting (code ready, blocked on OAuth)
+- [ ] Automated daily content scheduling (cron/Vercel Cron Jobs)
+- [ ] Stripe test mode verification
+- [ ] Real analytics from X/TikTok API
+- [ ] User auth (Clerk/NextAuth) — currently single demo user
+- [ ] Multi-user support (user isolation, quotas)
+- [ ] MySQL migration (swap SQLite for MySQL/PlanetScale)
+- [ ] TikTok video generation (AI text-to-video)
+- [ ] Stripe production mode
