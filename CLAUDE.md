@@ -4,9 +4,9 @@ Clone of SITIN.ai: an AI-powered social media automation tool that clones your p
 
 ## Stack
 - **Framework:** Next.js 16 (App Router) + TypeScript
-- **UI:** Tailwind CSS + shadcn/ui (14 components)
+- **UI:** Tailwind CSS + shadcn/ui (15 components)
 - **AI:** DeepSeek V3 ($0.27/1M input tokens)
-- **Database:** MySQL + Prisma 7
+- **Database:** SQLite (better-sqlite3) — zero config, auto-created. MySQL schema ready for later migration.
 - **Payments:** Stripe (Checkout + Webhooks)
 - **State:** Zustand
 - **Platform APIs:** X (Twitter) API v2, TikTok API v2
@@ -35,26 +35,32 @@ lib/
 
 ## Commands
 ```bash
-npm run dev      # Start dev server on :3000
+npm run dev      # Start dev server on :3000 (SQLite auto-created)
 npm run build    # Production build
-npx prisma generate  # Regenerate Prisma client after schema changes
-npx prisma db push    # Push schema to MySQL
+npx vercel       # Deploy to Vercel
+npx vercel --prod # Deploy to production
 ```
 
 ## Environment Variables (.env.local)
-```
-DEEPSEEK_API_KEY=sk-...         # DeepSeek API key
-DATABASE_URL=mysql://...        # MySQL connection (in prisma.config.ts)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+```bash
+# Required
+DEEPSEEK_API_KEY=sk-...          # DeepSeek V3 API key
+
+# Optional — X OAuth (one-click connect for users)
+X_CLIENT_ID=...                  # from developer.x.com → OAuth 2.0
+X_CLIENT_SECRET=...
+
+# Optional — Stripe payments
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_STARTER=price_...
-STRIPE_PRICE_PRO=price_...
-STRIPE_PRICE_BUSINESS=price_...
-X_CLIENT_ID=...                 # Twitter API OAuth
-X_CLIENT_SECRET=...
+
+# Optional — TikTok
 TIKTOK_CLIENT_KEY=...
 TIKTOK_CLIENT_SECRET=...
+
+# App URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ## Key Decisions
