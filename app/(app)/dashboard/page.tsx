@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   Users,
@@ -18,102 +20,72 @@ import {
   Sparkles,
   TrendingUp,
   MessageSquare,
-  Target,
 } from "lucide-react";
 
-// Mock data — replace with real data from Supabase
-const STATS = [
-  {
-    label: "Leads This Month",
-    value: "47",
-    change: "+12%",
-    up: true,
-    icon: Users,
-  },
-  {
-    label: "Content Published",
-    value: "28",
-    change: "+8%",
-    up: true,
-    icon: FileText,
-  },
-  {
-    label: "Engagement Rate",
-    value: "4.8%",
-    change: "-0.3%",
-    up: false,
-    icon: TrendingUp,
-  },
-  {
-    label: "Response Rate",
-    value: "92%",
-    change: "+5%",
-    up: true,
-    icon: MessageSquare,
-  },
-];
-
-const RECENT_LEADS = [
-  {
-    id: "1",
-    name: "Sarah Chen",
-    platform: "x",
-    score: 85,
-    level: "high" as const,
-    action: "DM: 'Love your thread on AI solopreneurship, would love to collab'",
-    time: "2h ago",
-  },
-  {
-    id: "2",
-    name: "Marcus Johnson",
-    platform: "x",
-    score: 62,
-    level: "medium" as const,
-    action: "Replied to your thread on AI automation",
-    time: "5h ago",
-  },
-  {
-    id: "3",
-    name: "Emily Park",
-    platform: "tiktok",
-    score: 45,
-    level: "medium" as const,
-    action: "Commented: 'How do you do this??' on your latest video",
-    time: "1d ago",
-  },
-  {
-    id: "4",
-    name: "David Kim",
-    platform: "x",
-    score: 91,
-    level: "high" as const,
-    action: "DM: 'Are you available for consulting? We need this at our company'",
-    time: "1d ago",
-  },
-];
-
-const PENDING_CONTENT = [
-  {
-    id: "1",
-    platform: "x" as const,
-    content: "The future of one-person businesses isn't about working harder...",
-    scheduledFor: "Tomorrow 9:00 AM",
-  },
-  {
-    id: "2",
-    platform: "x" as const,
-    content: "Just automated my entire client outreach pipeline with DeepSeek. Here's what happened 🧵",
-    scheduledFor: "Tomorrow 2:00 PM",
-  },
-  {
-    id: "3",
-    platform: "tiktok" as const,
-    content: "POV: You're a one-person business owner who just replaced their SDR with AI",
-    scheduledFor: "Jul 9, 9:00 AM",
-  },
-];
+interface DashboardData {
+  leadsThisMonth: number;
+  leadsChange: string;
+  contentPublished: number;
+  contentChange: string;
+  engagementRate: string;
+  engagementChange: string;
+  responseRate: string;
+  responseChange: string;
+  recentLeads: Array<{
+    id: string;
+    platform: string;
+    platformUsername: string;
+    action: string;
+    score: number;
+    level: string;
+    createdAt: string;
+  }>;
+  pendingContent: Array<{
+    id: string;
+    platform: string;
+    content: string;
+    scheduledAt: string;
+  }>;
+}
 
 export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const STATS = data
+    ? [
+        { label: "Leads This Month", value: String(data.leadsThisMonth), change: data.leadsChange, up: true, icon: Users },
+        { label: "Content Published", value: String(data.contentPublished), change: data.contentChange, up: true, icon: FileText },
+        { label: "Engagement Rate", value: data.engagementRate, change: data.engagementChange, up: false, icon: TrendingUp },
+        { label: "Response Rate", value: data.responseRate, change: data.responseChange, up: true, icon: MessageSquare },
+      ]
+    : [];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-96" />
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -176,14 +148,12 @@ export default function DashboardPage() {
               </CardDescription>
             </div>
             <Link href="/leads">
-              <Button variant="ghost" size="sm">
-                View all
-              </Button>
+              <Button variant="ghost" size="sm">View all</Button>
             </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {RECENT_LEADS.map((lead) => (
+              {data?.recentLeads?.map((lead) => (
                 <div
                   key={lead.id}
                   className="flex items-start justify-between rounded-lg border p-3"
@@ -191,31 +161,28 @@ export default function DashboardPage() {
                   <div className="flex items-start gap-3">
                     <div
                       className={`mt-1 h-2 w-2 rounded-full ${
-                        lead.level === "high"
-                          ? "bg-green-500"
-                          : "bg-yellow-500"
+                        lead.level === "high" ? "bg-green-500" : "bg-yellow-500"
                       }`}
                     />
                     <div>
-                      <p className="font-medium text-sm">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {lead.action}
-                      </p>
+                      <p className="font-medium text-sm">{lead.platformUsername}</p>
+                      <p className="text-xs text-muted-foreground">{lead.action}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">
-                          {lead.platform}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">
-                          Score: {lead.score}
-                        </span>
+                        <Badge variant="outline" className="text-[10px]">{lead.platform}</Badge>
+                        <span className="text-[10px] text-muted-foreground">Score: {lead.score}</span>
                       </div>
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">
-                    {lead.time}
+                    {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : ""}
                   </span>
                 </div>
               ))}
+              {(!data?.recentLeads || data.recentLeads.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No leads yet — connect a platform to get started.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -230,29 +197,35 @@ export default function DashboardPage() {
               </CardDescription>
             </div>
             <Link href="/content">
-              <Button variant="ghost" size="sm">
-                Review all
-              </Button>
+              <Button variant="ghost" size="sm">Review all</Button>
             </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {PENDING_CONTENT.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border p-3"
-                >
+              {data?.pendingContent?.map((item) => (
+                <div key={item.id} className="rounded-lg border p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <Badge variant="outline" className="text-[10px]">
-                      {item.platform}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">{item.platform}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {item.scheduledFor}
+                      {item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString("en-US", {
+                        weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                      }) : "Pending"}
                     </span>
                   </div>
                   <p className="text-sm line-clamp-2">{item.content}</p>
                   <div className="mt-2 flex gap-2">
-                    <Button size="sm" variant="default" className="h-7 text-xs">
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={async () => {
+                        await fetch("/api/content", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: item.id, status: "approved" }),
+                        });
+                        window.location.reload();
+                      }}
+                    >
                       Approve
                     </Button>
                     <Button
@@ -266,12 +239,28 @@ export default function DashboardPage() {
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs text-destructive"
+                      onClick={async () => {
+                        await fetch("/api/content", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: item.id, status: "rejected" }),
+                        });
+                        window.location.reload();
+                      }}
                     >
                       Reject
                     </Button>
                   </div>
                 </div>
               ))}
+              {(!data?.pendingContent || data.pendingContent.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No pending content.{" "}
+                  <Link href="/onboarding" className="text-primary hover:underline">
+                    Generate some →
+                  </Link>
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
