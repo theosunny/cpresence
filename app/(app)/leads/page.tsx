@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, MessageSquare, ExternalLink, Mail } from "lucide-react";
+import { Search, MessageSquare, ExternalLink, Mail } from "lucide-react";
 import type { Lead, LeadScore } from "@/types";
 
 const SCORE_COLORS: Record<LeadScore, string> = {
@@ -75,17 +74,18 @@ export default function LeadsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[140px]"><Filter className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Platforms</SelectItem>
-            <SelectItem value="x">X / Twitter</SelectItem>
-            <SelectItem value="tiktok">TikTok</SelectItem>
-          </SelectContent>
-        </Select>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="flex h-10 w-[140px] items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="all">All Platforms</option>
+          <option value="x">X / Twitter</option>
+          <option value="tiktok">TikTok</option>
+        </select>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => v && setTab(v)}>
         <TabsList>
           <TabsTrigger value="all">All ({leads.length})</TabsTrigger>
           <TabsTrigger value="unread">Unread ({leads.filter((l) => !l.isRead).length})</TabsTrigger>

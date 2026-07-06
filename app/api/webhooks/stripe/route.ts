@@ -2,7 +2,7 @@
  * Stripe Webhook Handler.
  *
  * Processes subscription events: created, updated, deleted.
- * Updates user tier in MySQL via Prisma.
+ * Updates user tier in SQLite.
  *
  * Test locally:
  *   1. stripe login
@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/db";
+import { getDemoUserId, getOne, run } from "@/lib/db-sqlite";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_placeholder";
@@ -25,8 +25,7 @@ export async function POST(req: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err) {
-    console.error("Stripe webhook signature verification failed:", err);
+  } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -50,92 +49,50 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        console.warn("Payment failed for customer:", invoice.customer);
-        // Optionally notify user, downgrade account, etc.
-        break;
-      }
-
       default:
         console.log(`Unhandled Stripe event: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("Stripe webhook handler error:", err);
-    return NextResponse.json(
-      { error: "Webhook handler error" },
-      { status: 500 }
-    );
+    console.error("Stripe webhook error:", err);
+    return NextResponse.json({ error: "Handler error" }, { status: 500 });
   }
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const clientReferenceId = session.client_reference_id; // Our user ID
+  const clientReferenceId = session.client_reference_id;
 
-  if (!clientReferenceId) {
-    console.warn("No client_reference_id on checkout session");
-    return;
-  }
+  if (!clientReferenceId) return;
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0]?.price.id;
-
-  // Map Stripe price ID to tier
   const tier = mapPriceToTier(priceId);
 
-  await prisma.user.update({
-    where: { id: clientReferenceId },
-    data: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      tier,
-    },
-  });
-
-  console.log(`User ${clientReferenceId} upgraded to ${tier}`);
+  run(
+    "UPDATE users SET tier = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE id = ?",
+    [tier, subscriptionId, clientReferenceId]
+  );
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const customerId = subscription.customer as string;
+  const userId = getDemoUserId();
   const priceId = subscription.items.data[0]?.price.id;
-  const tier = mapPriceToTier(priceId);
-  const status = subscription.status;
+  const tier = subscription.status === "active" ? mapPriceToTier(priceId) : "starter";
 
-  const user = await prisma.user.findFirst({
-    where: { stripeCustomerId: customerId },
-  });
-
-  if (!user) return;
-
-  const newTier = status === "active" ? tier : "starter";
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { tier: newTier },
-  });
-
-  console.log(`User ${user.id} subscription updated to ${newTier} (${status})`);
+  run(
+    "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE id = ?",
+    [tier, userId]
+  );
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const customerId = subscription.customer as string;
-
-  const user = await prisma.user.findFirst({
-    where: { stripeCustomerId: customerId },
-  });
-
-  if (!user) return;
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { tier: "starter", stripeSubscriptionId: null },
-  });
-
-  console.log(`User ${user.id} subscription cancelled — downgraded to starter`);
+async function handleSubscriptionDeleted(_subscription: Stripe.Subscription) {
+  const userId = getDemoUserId();
+  run(
+    "UPDATE users SET tier = 'starter', stripe_subscription_id = NULL, updated_at = datetime('now') WHERE id = ?",
+    [userId]
+  );
 }
 
 function mapPriceToTier(priceId: string | undefined): "starter" | "pro" | "business" {

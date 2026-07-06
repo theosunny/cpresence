@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="linkedin">
+      <Tabs defaultValue="x">
         <TabsList>
           <TabsTrigger value="x">X / Twitter</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok</TabsTrigger>

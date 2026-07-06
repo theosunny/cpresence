@@ -88,34 +88,6 @@ const DEFAULT_STYLE_PROFILE: StyleProfile = {
 // For MVP, we use recentPosts directly in the prompt context.
 // Post-PMF: add MySQL full-text search or switch to pgvector/Weaviate.
 
-export async function indexUserContent(userId: string, posts: { content: string; id: string }[]) {
-  // Store in MySQL via Prisma — each post stored for future RAG retrieval
-  const { prisma } = await import("./db");
-  for (const post of posts) {
-    await prisma.analyticsSnapshot.upsert({
-      where: {
-        userId_platform_date: {
-          userId,
-          platform: "x",
-          date: new Date(),
-        },
-      },
-      update: { postsCount: { increment: 1 } },
-      create: {
-        userId,
-        platform: "x",
-        date: new Date(),
-        postsCount: 1,
-        followers: 0,
-        impressions: 0,
-        engagementRate: 0,
-        clicks: 0,
-        leadsGenerated: 0,
-      },
-    });
-  }
-}
-
 // ── Layer 3: Content Generation ──
 
 export interface GenerationContext {

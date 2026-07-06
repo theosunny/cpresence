@@ -8,7 +8,7 @@ import { getDemoUserId, getAll, getOne, run } from "@/lib/db-sqlite";
 
 export async function GET() {
   const userId = getDemoUserId();
-  const tokens = getAll(
+  const tokens = getAll<{ platform: string; username: string; userId: string; connectedAt: string }>(
     `SELECT platform, platform_username as username, platform_user_id as userId,
             created_at as connectedAt
      FROM platform_tokens WHERE user_id = ?`,

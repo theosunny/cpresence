@@ -10,8 +10,12 @@
 
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
 const DB_PATH = path.join(process.cwd(), "prisma", "opc-sitin.db");
+
+// Ensure the prisma directory exists for SQLite
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
 
@@ -123,13 +127,12 @@ db.exec(`
 
 // ── Seed demo user ──
 
-const seedDemo = db.prepare(`SELECT id FROM users WHERE email = 'demo@opcsitin.com'`).get() as { id: string } | undefined;
+const seedResult = db.prepare(
+  `INSERT OR IGNORE INTO users (id, email, name, tier) VALUES (?, ?, ?, ?)`
+).run("demo-user-001", "demo@opcsitin.com", "Demo User", "pro");
 
-if (!seedDemo) {
-  const userId = db.prepare(`INSERT INTO users (email, name, tier) VALUES (?, ?, ?)`).run(
-    "demo@opcsitin.com", "Demo User", "pro"
-  ).lastInsertRowid;
-  console.log(`[DB] Seeded demo user: ${userId}`);
+if (seedResult.changes > 0) {
+  console.log(`[DB] Seeded demo user`);
 }
 
 export default db;
